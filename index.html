@@ -3,26 +3,122 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ReachInbox Email Scheduler — Demo</title>
+<title>ReachInbox Email Scheduler — Assignment</title>
 <style>
-  body{margin:0;background:#0d0d1a;color:#e8e8f5;font:16px/1.6 Inter,system-ui,sans-serif}
-  main{max-width:920px;margin:0 auto;padding:48px 20px}
-  h1{font-size:34px;margin:0 0 8px} p.lead{color:#a9a9c8;margin:0 0 28px}
-  video{width:100%;border-radius:16px;box-shadow:0 20px 60px #0008;background:#000}
-  a{color:#b79cff} .links{margin-top:24px;display:flex;gap:18px;flex-wrap:wrap}
-  .pill{border:1px solid #34345c;border-radius:999px;padding:8px 14px}
+  :root{--bg:#0b0b16;--panel:#14142a;--line:#2a2a4a;--ink:#ececf7;--muted:#a5a5c4;--brand:#8b6cff;--ok:#34d399;--warn:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#241a4d 0%,transparent 60%),var(--bg);color:var(--ink);font:16px/1.65 Inter,system-ui,-apple-system,sans-serif}
+  main{max-width:1000px;margin:0 auto;padding:56px 22px 80px}
+  h1{font-size:clamp(28px,4vw,42px);line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}
+  h2{font-size:20px;margin:44px 0 14px;letter-spacing:-.01em}
+  .eyebrow{display:inline-block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin-bottom:18px}
+  .lead{color:var(--muted);margin:0 0 26px;max-width:70ch}
+  video{width:100%;border-radius:16px;box-shadow:0 24px 70px #0009;background:#000;display:block}
+  a{color:#bda6ff}
+  .links{margin:24px 0 0;display:flex;gap:12px;flex-wrap:wrap}
+  .pill{border:1px solid var(--line);border-radius:999px;padding:9px 16px;text-decoration:none;font-size:14px;background:#ffffff08}
+  .pill.primary{background:linear-gradient(135deg,#7c5cff,#a855f7);border-color:transparent;color:#fff;font-weight:600}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .card h3{margin:0 0 6px;font-size:14px}
+  .card p{margin:0;color:var(--muted);font-size:13.5px}
+  ul{margin:10px 0 0;padding-left:20px;color:var(--muted)}
+  li{margin:6px 0}
+  li b{color:var(--ink)}
+  .flow{display:grid;gap:10px;margin-top:16px}
+  .row{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .node{background:linear-gradient(180deg,#191933,#131327);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px}
+  .node span{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+  .arrow{text-align:center;color:#4b4b78;font-size:13px}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .pass{color:var(--ok);font-weight:600}
+  .block{color:var(--warn);font-weight:600}
+  code{background:#ffffff10;border-radius:6px;padding:1px 6px;font-size:12.5px}
+  footer{margin-top:56px;color:#6f6f92;font-size:12.5px;border-top:1px solid var(--line);padding-top:18px}
 </style>
 </head>
 <body>
 <main>
+  <span class="eyebrow">Software Development Intern — Assignment</span>
   <h1>ReachInbox — Email Job Scheduler</h1>
-  <p class="lead">Aatreyee Misra · 1:44 recorded walkthrough · BullMQ, Redis, PostgreSQL, Elasticsearch, Ethereal SMTP.</p>
+  <p class="lead">
+    Aatreyee Misra · Full-stack scheduler built with React + TypeScript + Tailwind, Express + TypeScript,
+    PostgreSQL/Prisma, BullMQ + Redis and Elasticsearch, sending through Ethereal SMTP.
+    Delayed jobs only — no cron, no <code>setTimeout</code>.
+  </p>
+
   <video controls preload="metadata" src="demo.webm"></video>
+
   <div class="links">
-    <a class="pill" href="https://sacrifice-ethnic-admit-lynn.trycloudflare.com">Live app (temporary tunnel)</a>
-    <a class="pill" href="https://github.com/diya003/reachinbox-email-scheduler">Private GitHub repo</a>
+    <a class="pill primary" href="https://sacrifice-ethnic-admit-lynn.trycloudflare.com">Live app</a>
+    <a class="pill" href="https://github.com/diya003/reachinbox-email-scheduler">GitHub repository</a>
     <a class="pill" href="demo.webm">Download video</a>
   </div>
+
+  <h2>Architecture</h2>
+  <div class="flow">
+    <div class="row">
+      <div class="node">React dashboard<span>Vite · TanStack Query · typed API client</span></div>
+      <div class="node">Express API<span>Google OAuth · JWT cookie · Zod validation</span></div>
+      <div class="node">PostgreSQL<span>Prisma · source of truth for every email</span></div>
+    </div>
+    <div class="arrow">↓ schedule → persist → enqueue with a delay ↓</div>
+    <div class="row">
+      <div class="node">Redis + BullMQ<span>Delayed jobs, <code>jobId = email UUID</code>, AOF persistence</span></div>
+      <div class="node">Worker<span>Configurable concurrency · atomic Lua rate gate</span></div>
+      <div class="node">Ethereal SMTP<span>Pooled transport per sender · preview URLs</span></div>
+    </div>
+    <div class="arrow">↓ on send / on limit ↓</div>
+    <div class="row">
+      <div class="node">Elasticsearch<span>Search across scheduled and sent mail</span></div>
+      <div class="node">Slack<span>Hourly-limit alert via OAuth-installed app</span></div>
+      <div class="node">Bull Board<span>Auth-protected queue monitor at <code>/admin/queues</code></span></div>
+    </div>
+  </div>
+
+  <h2>What it guarantees</h2>
+  <ul>
+    <li><b>Delayed jobs only.</b> Every email becomes a BullMQ delayed job keyed by its UUID; nothing polls a clock.</li>
+    <li><b>Limits are enforced in one atomic Redis Lua call</b> — per-sender hourly counter, optional global counter, and minimum spacing between sends, shared by every worker instance.</li>
+    <li><b>Over-limit jobs are delayed, never dropped.</b> The worker calls <code>moveToDelayed</code> and raises <code>DelayedError</code>.</li>
+    <li><b>Restart-safe.</b> Startup recovery re-enqueues Postgres rows that have no live job, so killing API and worker mid-flight loses nothing.</li>
+    <li><b>Idempotent.</b> An <code>Idempotency-Key</code> replay returns the original campaign instead of duplicating it.</li>
+    <li><b>Honest states.</b> Loading skeletons, empty states with a next action, and retryable error panels on every page.</li>
+  </ul>
+
+  <h2>Verification run</h2>
+  <p class="lead" style="margin-bottom:0">Executed against the running stack with real HTTP calls and real Ethereal delivery.</p>
+  <table>
+    <thead><tr><th>Scenario</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Schedule an email → saved in PostgreSQL</td><td class="pass">Pass</td></tr>
+      <tr><td>Future email → BullMQ delays it</td><td class="pass">Pass — 2 s spacing</td></tr>
+      <tr><td>Restart API + worker → email still sends</td><td class="pass">Pass — sent after both were killed</td></tr>
+      <tr><td>Email reaches scheduled time → worker sends</td><td class="pass">Pass — preview URL returned</td></tr>
+      <tr><td>Multiple emails → concurrency works</td><td class="pass">Pass</td></tr>
+      <tr><td>Send too quickly → minimum delay enforced</td><td class="pass">Pass — 2 s floor</td></tr>
+      <tr><td>Reach hourly limit → excess jobs delayed</td><td class="pass">Pass — delayed 10 → 13</td></tr>
+      <tr><td>Search scheduled / sent email</td><td class="pass">Pass — Elasticsearch</td></tr>
+      <tr><td>Same request again → no duplicate</td><td class="pass">Pass — idempotent replay</td></tr>
+      <tr><td>Disconnect Slack → no application crash</td><td class="pass">Pass — 204, app healthy</td></tr>
+      <tr><td>Hourly limit hit → Slack alert</td><td class="block">Needs Slack app credentials</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Stack</h2>
+  <div class="grid">
+    <div class="card"><h3>Frontend</h3><p>React 18, TypeScript, Tailwind, TanStack Query, React Router, Vite.</p></div>
+    <div class="card"><h3>Backend</h3><p>Express, TypeScript, Prisma, Zod, JWT session cookie, Google OAuth.</p></div>
+    <div class="card"><h3>Infrastructure</h3><p>PostgreSQL, Redis (AOF), BullMQ, Elasticsearch, Docker Compose.</p></div>
+    <div class="card"><h3>Delivery</h3><p>Ethereal SMTP with pooled transports, app-password auth, Slack webhooks.</p></div>
+  </div>
+
+  <footer>
+    Setup, API reference and architecture notes live in the repository README.
+    The live app runs through a temporary tunnel from the development machine; the recorded walkthrough above is the durable reference.
+  </footer>
 </main>
 </body>
 </html>
