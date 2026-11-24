@@ -3,122 +3,347 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ReachInbox Email Scheduler — Assignment</title>
+<title>ReachInbox — Email Job Scheduler</title>
+<meta name="description" content="Aatreyee Misra — full-stack email job scheduler built with React, Express, PostgreSQL, BullMQ and Elasticsearch." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c5cff'/%3E%3Cpath d='M8 11h16v10H8z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M8 11l8 6 8-6' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E" />
 <style>
-  :root{--bg:#0b0b16;--panel:#14142a;--line:#2a2a4a;--ink:#ececf7;--muted:#a5a5c4;--brand:#8b6cff;--ok:#34d399;--warn:#fbbf24}
+  :root{
+    --bg:#08080f; --panel:#12121f; --panel2:#0e0e1a; --line:#242440;
+    --ink:#f0f0fa; --muted:#9c9cbe; --brand:#8b6cff; --brand2:#c084fc;
+    --ok:#34d399; --warn:#fbbf24; --sky:#60a5fa;
+    --radius:18px;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#241a4d 0%,transparent 60%),var(--bg);color:var(--ink);font:16px/1.65 Inter,system-ui,-apple-system,sans-serif}
-  main{max-width:1000px;margin:0 auto;padding:56px 22px 80px}
-  h1{font-size:clamp(28px,4vw,42px);line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}
-  h2{font-size:20px;margin:44px 0 14px;letter-spacing:-.01em}
-  .eyebrow{display:inline-block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin-bottom:18px}
-  .lead{color:var(--muted);margin:0 0 26px;max-width:70ch}
-  video{width:100%;border-radius:16px;box-shadow:0 24px 70px #0009;background:#000;display:block}
-  a{color:#bda6ff}
-  .links{margin:24px 0 0;display:flex;gap:12px;flex-wrap:wrap}
-  .pill{border:1px solid var(--line);border-radius:999px;padding:9px 16px;text-decoration:none;font-size:14px;background:#ffffff08}
-  .pill.primary{background:linear-gradient(135deg,#7c5cff,#a855f7);border-color:transparent;color:#fff;font-weight:600}
-  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:16px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
-  .card h3{margin:0 0 6px;font-size:14px}
-  .card p{margin:0;color:var(--muted);font-size:13.5px}
-  ul{margin:10px 0 0;padding-left:20px;color:var(--muted)}
-  li{margin:6px 0}
-  li b{color:var(--ink)}
-  .flow{display:grid;gap:10px;margin-top:16px}
-  .row{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
-  .node{background:linear-gradient(180deg,#191933,#131327);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px}
-  .node span{display:block;color:var(--muted);font-size:12px;margin-top:3px}
-  .arrow{text-align:center;color:#4b4b78;font-size:13px}
-  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px}
-  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
-  .pass{color:var(--ok);font-weight:600}
-  .block{color:var(--warn);font-weight:600}
-  code{background:#ffffff10;border-radius:6px;padding:1px 6px;font-size:12.5px}
-  footer{margin-top:56px;color:#6f6f92;font-size:12.5px;border-top:1px solid var(--line);padding-top:18px}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;color:var(--ink);
+    font:16px/1.65 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* aurora */
+  .aurora{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
+  .aurora i{position:absolute;display:block;border-radius:50%;filter:blur(90px);opacity:.5;animation:float 22s ease-in-out infinite}
+  .aurora i:nth-child(1){width:620px;height:620px;background:#5b21b6;top:-220px;left:-140px}
+  .aurora i:nth-child(2){width:520px;height:520px;background:#7c3aed;top:120px;right:-180px;animation-delay:-7s}
+  .aurora i:nth-child(3){width:420px;height:420px;background:#0ea5e9;bottom:-160px;left:32%;opacity:.22;animation-delay:-13s}
+  @keyframes float{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(30px,-40px,0) scale(1.12)}}
+  .grid-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);
+    background-size:64px 64px;mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 20%,transparent 75%)}
+
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  a{color:#c9b6ff;text-decoration:none}
+  a:hover{color:#e3d9ff}
+
+  /* nav */
+  header.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:#08080fb8;border-bottom:1px solid #ffffff0d}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;gap:18px;height:66px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+  .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#7c5cff,#c084fc);display:grid;place-items:center;box-shadow:0 6px 18px #7c5cff55}
+  .mark svg{width:16px;height:16px}
+  .nav-links{display:flex;align-items:center;gap:8px}
+  .nav-links a{font-size:13.5px;color:var(--muted);padding:8px 12px;border-radius:9px;transition:.18s}
+  .nav-links a:hover{color:var(--ink);background:#ffffff0a}
+
+  /* hero */
+  .hero{padding:84px 0 30px;text-align:center;position:relative}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:#cbb9ff;border:1px solid #7c5cff44;background:#7c5cff14;border-radius:999px;padding:7px 15px;margin-bottom:26px}
+  .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px #34d39922}
+  h1{font-size:clamp(38px,6.4vw,72px);line-height:1.03;letter-spacing:-.035em;margin:0 0 20px;font-weight:800}
+  h1 .grad{background:linear-gradient(100deg,#fff 10%,#c4b5fd 45%,#7dd3fc 75%,#fff 95%);background-size:200% auto;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 9s linear infinite}
+  @keyframes shine{to{background-position:200% center}}
+  .lede{max-width:660px;margin:0 auto;color:var(--muted);font-size:17.5px}
+  .lede code{background:#ffffff10;border:1px solid #ffffff14;border-radius:6px;padding:1px 7px;font-size:14px;color:#e9e3ff}
+
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:34px 0 0}
+  .btn{display:inline-flex;align-items:center;gap:9px;border-radius:12px;padding:13px 22px;font-size:14.5px;font-weight:600;transition:.2s;border:1px solid transparent}
+  .btn svg{width:16px;height:16px}
+  .btn.primary{background:linear-gradient(135deg,#7c5cff,#a855f7);color:#fff;box-shadow:0 10px 30px #7c5cff45}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 16px 38px #7c5cff66;color:#fff}
+  .btn.ghost{border-color:#ffffff1f;background:#ffffff08;color:#e8e6ff}
+  .btn.ghost:hover{background:#ffffff12;border-color:#ffffff30;color:#fff;transform:translateY(-2px)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:52px auto 0;max-width:860px}
+  .stat{background:linear-gradient(180deg,#141428,#0f0f1d);border:1px solid var(--line);border-radius:14px;padding:16px 12px}
+  .stat b{display:block;font-size:24px;letter-spacing:-.02em;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat span{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:#7b7b9e}
+
+  /* video frame */
+  .showcase{padding:46px 0 10px}
+  .frame{position:relative;border-radius:22px;padding:10px;background:linear-gradient(140deg,#ffffff1c,#ffffff05);
+    border:1px solid #ffffff17;box-shadow:0 40px 120px -30px #7c5cff55,0 0 0 1px #00000040}
+  .frame::after{content:"";position:absolute;inset:-1px;border-radius:23px;padding:1px;pointer-events:none;
+    background:linear-gradient(120deg,#7c5cff88,transparent 35%,transparent 65%,#38bdf888);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  .bar{display:flex;align-items:center;gap:7px;padding:4px 8px 12px}
+  .bar i{width:10px;height:10px;border-radius:50%;background:#ff5f57}
+  .bar i:nth-child(2){background:#febc2e}
+  .bar i:nth-child(3){background:#28c840}
+  .bar span{margin-left:10px;font-size:11.5px;color:#8b8bab}
+  video{display:block;width:100%;border-radius:13px;background:#000;box-shadow:0 20px 50px #0008}
+
+  /* sections */
+  section{padding:78px 0 0}
+  .kicker{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#8b7ad6;font-weight:600;margin-bottom:12px}
+  .kicker::before{content:"";width:26px;height:1px;background:linear-gradient(90deg,#7c5cff,transparent)}
+  h2{font-size:clamp(26px,3.4vw,36px);letter-spacing:-.025em;margin:0 0 10px;font-weight:750}
+  .sub{color:var(--muted);max-width:640px;margin:0 0 30px}
+
+  .flow{display:grid;gap:12px}
+  .lane{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .node{position:relative;background:linear-gradient(180deg,#15152a,#101020);border:1px solid var(--line);
+    border-radius:14px;padding:16px 17px;transition:.22s}
+  .node:hover{transform:translateY(-3px);border-color:#7c5cff55;box-shadow:0 14px 34px -14px #7c5cff66}
+  .node h3{margin:0 0 5px;font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .node p{margin:0;font-size:12.8px;color:var(--muted);line-height:1.55}
+  .node code{font-size:11.5px;background:#ffffff0d;border-radius:5px;padding:1px 5px;color:#d9ccff}
+  .lane-tag{display:inline-block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6f6f93;padding-left:2px}
+  .link-row{display:flex;align-items:center;gap:12px;color:#3f3f63;font-size:12px;padding:2px 6px}
+  .link-row::before,.link-row::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#2a2a4a,transparent)}
+  .dot-brand{width:7px;height:7px;border-radius:50%;background:#7c5cff;box-shadow:0 0 12px #7c5cff}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .card{position:relative;overflow:hidden;background:linear-gradient(180deg,#131326,#0e0e1c);border:1px solid var(--line);
+    border-radius:16px;padding:20px;transition:.22s}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,#7c5cff66,transparent);opacity:0;transition:.25s}
+  .card:hover{transform:translateY(-4px);border-color:#7c5cff44;box-shadow:0 20px 44px -22px #7c5cff77}
+  .card:hover::before{opacity:1}
+  .card .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#7c5cff18;border:1px solid #7c5cff33;margin-bottom:13px;color:#b9a5ff}
+  .card .ico svg{width:17px;height:17px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .card p{margin:0;font-size:13.2px;color:var(--muted)}
+
+  /* table */
+  .table-wrap{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#0e0e1a}
+  table{width:100%;border-collapse:collapse;font-size:13.6px}
+  thead th{text-align:left;padding:13px 18px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7d7da0;background:#ffffff05;border-bottom:1px solid var(--line)}
+  td{padding:12px 18px;border-bottom:1px solid #1c1c33;color:#c9c9e0}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr{transition:.16s}
+  tbody tr:hover{background:#ffffff05}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;border-radius:999px;padding:4px 10px}
+  .pill.ok{color:#6ee7b7;background:#34d39915;border:1px solid #34d39933}
+  .pill.block{color:#fcd34d;background:#fbbf2415;border:1px solid #fbbf2433}
+  .pill .d{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+  /* stack */
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+  .chip{font-size:12.5px;color:#c3c3dc;background:#ffffff08;border:1px solid #ffffff14;border-radius:999px;padding:7px 14px}
+  .chip:hover{border-color:#7c5cff55;color:#fff}
+
+  footer{margin-top:84px;border-top:1px solid #ffffff10;padding:26px 0 44px;color:#71718f;font-size:12.5px}
+  .foot-in{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+  .foot-links{display:flex;gap:16px}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  @media (max-width:820px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .lane{grid-template-columns:1fr}
+    .hero{padding-top:58px}
+    .nav-links a.opt{display:none}
+  }
+  @media (max-width:520px){
+    .stats{grid-template-columns:1fr 1fr;gap:9px}
+    .stat b{font-size:20px}
+    .nav-links a{padding:7px 9px;font-size:12.5px}
+    .brand .name{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .reveal{opacity:1;transform:none}
+  }
 </style>
 </head>
 <body>
-<main>
-  <span class="eyebrow">Software Development Intern — Assignment</span>
-  <h1>ReachInbox — Email Job Scheduler</h1>
-  <p class="lead">
-    Aatreyee Misra · Full-stack scheduler built with React + TypeScript + Tailwind, Express + TypeScript,
-    PostgreSQL/Prisma, BullMQ + Redis and Elasticsearch, sending through Ethereal SMTP.
-    Delayed jobs only — no cron, no <code>setTimeout</code>.
-  </p>
+<div class="aurora"><i></i><i></i><i></i></div>
+<div class="grid-bg"></div>
 
-  <video controls preload="metadata" src="demo.webm"></video>
-
-  <div class="links">
-    <a class="pill primary" href="https://sacrifice-ethnic-admit-lynn.trycloudflare.com">Live app</a>
-    <a class="pill" href="https://github.com/diya003/email">GitHub repository</a>
-    <a class="pill" href="demo.webm">Download video</a>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+      <span class="name">ReachInbox</span>
+    </a>
+    <nav class="nav-links">
+      <a class="opt" href="#architecture">Architecture</a>
+      <a class="opt" href="#verification">Verification</a>
+      <a class="opt" href="#stack">Stack</a>
+      <a href="https://github.com/diya003/email">GitHub</a>
+    </nav>
   </div>
+</header>
 
-  <h2>Architecture</h2>
-  <div class="flow">
-    <div class="row">
-      <div class="node">React dashboard<span>Vite · TanStack Query · typed API client</span></div>
-      <div class="node">Express API<span>Google OAuth · JWT cookie · Zod validation</span></div>
-      <div class="node">PostgreSQL<span>Prisma · source of truth for every email</span></div>
+<main id="top">
+  <section class="hero wrap" style="padding-top:84px">
+    <div class="badge"><span class="dot"></span>Software Development Intern — Assignment</div>
+    <h1>Email scheduling that<br /><span class="grad">never loses a job.</span></h1>
+    <p class="lede">
+      Aatreyee Misra · React + TypeScript + Tailwind, Express + TypeScript, PostgreSQL/Prisma,
+      BullMQ + Redis and Elasticsearch, sending through Ethereal SMTP.
+      Delayed jobs only — no cron, no <code>setTimeout</code>.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://sacrifice-ethnic-admit-lynn.trycloudflare.com">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 3l14 9-14 9V3z"/></svg>
+        Open live app
+      </a>
+      <a class="btn ghost" href="https://github.com/diya003/email">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 1.8 2.7 1.3 3.4 1 .1-.7.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+        View repository
+      </a>
+      <a class="btn ghost" href="demo.webm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Download video
+      </a>
     </div>
-    <div class="arrow">↓ schedule → persist → enqueue with a delay ↓</div>
-    <div class="row">
-      <div class="node">Redis + BullMQ<span>Delayed jobs, <code>jobId = email UUID</code>, AOF persistence</span></div>
-      <div class="node">Worker<span>Configurable concurrency · atomic Lua rate gate</span></div>
-      <div class="node">Ethereal SMTP<span>Pooled transport per sender · preview URLs</span></div>
+
+    <div class="stats">
+      <div class="stat"><b>6</b><span>Pages</span></div>
+      <div class="stat"><b>9/9</b><span>Unit tests</span></div>
+      <div class="stat"><b>10/11</b><span>Checks passed</span></div>
+      <div class="stat"><b>1:44</b><span>Demo</span></div>
     </div>
-    <div class="arrow">↓ on send / on limit ↓</div>
-    <div class="row">
-      <div class="node">Elasticsearch<span>Search across scheduled and sent mail</span></div>
-      <div class="node">Slack<span>Hourly-limit alert via OAuth-installed app</span></div>
-      <div class="node">Bull Board<span>Auth-protected queue monitor at <code>/admin/queues</code></span></div>
+  </section>
+
+  <section class="showcase wrap">
+    <div class="frame">
+      <div class="bar"><i></i><i></i><i></i><span>reachinbox · recorded walkthrough</span></div>
+      <video controls preload="metadata" poster="poster.png" src="demo.webm"></video>
     </div>
-  </div>
+  </section>
 
-  <h2>What it guarantees</h2>
-  <ul>
-    <li><b>Delayed jobs only.</b> Every email becomes a BullMQ delayed job keyed by its UUID; nothing polls a clock.</li>
-    <li><b>Limits are enforced in one atomic Redis Lua call</b> — per-sender hourly counter, optional global counter, and minimum spacing between sends, shared by every worker instance.</li>
-    <li><b>Over-limit jobs are delayed, never dropped.</b> The worker calls <code>moveToDelayed</code> and raises <code>DelayedError</code>.</li>
-    <li><b>Restart-safe.</b> Startup recovery re-enqueues Postgres rows that have no live job, so killing API and worker mid-flight loses nothing.</li>
-    <li><b>Idempotent.</b> An <code>Idempotency-Key</code> replay returns the original campaign instead of duplicating it.</li>
-    <li><b>Honest states.</b> Loading skeletons, empty states with a next action, and retryable error panels on every page.</li>
-  </ul>
+  <section id="architecture" class="wrap">
+    <div class="kicker">Architecture</div>
+    <h2>Postgres decides. Redis times it.</h2>
+    <p class="sub">Every email is a row in Postgres and a delayed BullMQ job keyed by its UUID. The worker is the only thing that talks to SMTP, and one atomic Lua call guards every send.</p>
 
-  <h2>Verification run</h2>
-  <p class="lead" style="margin-bottom:0">Executed against the running stack with real HTTP calls and real Ethereal delivery.</p>
-  <table>
-    <thead><tr><th>Scenario</th><th>Result</th></tr></thead>
-    <tbody>
-      <tr><td>Schedule an email → saved in PostgreSQL</td><td class="pass">Pass</td></tr>
-      <tr><td>Future email → BullMQ delays it</td><td class="pass">Pass — 2 s spacing</td></tr>
-      <tr><td>Restart API + worker → email still sends</td><td class="pass">Pass — sent after both were killed</td></tr>
-      <tr><td>Email reaches scheduled time → worker sends</td><td class="pass">Pass — preview URL returned</td></tr>
-      <tr><td>Multiple emails → concurrency works</td><td class="pass">Pass</td></tr>
-      <tr><td>Send too quickly → minimum delay enforced</td><td class="pass">Pass — 2 s floor</td></tr>
-      <tr><td>Reach hourly limit → excess jobs delayed</td><td class="pass">Pass — delayed 10 → 13</td></tr>
-      <tr><td>Search scheduled / sent email</td><td class="pass">Pass — Elasticsearch</td></tr>
-      <tr><td>Same request again → no duplicate</td><td class="pass">Pass — idempotent replay</td></tr>
-      <tr><td>Disconnect Slack → no application crash</td><td class="pass">Pass — 204, app healthy</td></tr>
-      <tr><td>Hourly limit hit → Slack alert</td><td class="block">Needs Slack app credentials</td></tr>
-    </tbody>
-  </table>
+    <div class="flow">
+      <div class="lane">
+        <div class="node"><h3>React dashboard</h3><p>Vite · TanStack Query · typed API client · skeleton, empty and error states on every page.</p></div>
+        <div class="node"><h3>Express API</h3><p>Google OAuth · JWT httpOnly cookie · Zod validation · idempotency keys.</p></div>
+        <div class="node"><h3>PostgreSQL</h3><p>Prisma schema · source of truth for campaigns, emails, send logs and Slack connections.</p></div>
+      </div>
+      <div class="link-row"><span class="dot-brand"></span> schedule → persist → enqueue with a delay</div>
+      <div class="lane">
+        <div class="node"><h3>Redis + BullMQ</h3><p>Delayed jobs, <code>jobId = email UUID</code>, AOF persistence, startup recovery.</p></div>
+        <div class="node"><h3>Worker</h3><p>Configurable concurrency · per-sender hourly counter · minimum spacing · global cap.</p></div>
+        <div class="node"><h3>Ethereal SMTP</h3><p>Pooled transport per sender · app-password auth · preview URLs for every send.</p></div>
+      </div>
+      <div class="link-row"><span class="dot-brand"></span> on send · on limit</div>
+      <div class="lane">
+        <div class="node"><h3>Elasticsearch</h3><p>Full-text search across scheduled and sent mail, with a Postgres fallback.</p></div>
+        <div class="node"><h3>Slack</h3><p>Hourly-limit alert through an OAuth-installed app; silence is not a failure.</p></div>
+        <div class="node"><h3>Bull Board</h3><p>Queue monitor at <code>/admin/queues</code>, behind session auth.</p></div>
+      </div>
+    </div>
+  </section>
 
-  <h2>Stack</h2>
-  <div class="grid">
-    <div class="card"><h3>Frontend</h3><p>React 18, TypeScript, Tailwind, TanStack Query, React Router, Vite.</p></div>
-    <div class="card"><h3>Backend</h3><p>Express, TypeScript, Prisma, Zod, JWT session cookie, Google OAuth.</p></div>
-    <div class="card"><h3>Infrastructure</h3><p>PostgreSQL, Redis (AOF), BullMQ, Elasticsearch, Docker Compose.</p></div>
-    <div class="card"><h3>Delivery</h3><p>Ethereal SMTP with pooled transports, app-password auth, Slack webhooks.</p></div>
-  </div>
+  <section id="guarantees" class="wrap">
+    <div class="kicker">Guarantees</div>
+    <h2>Built for the boring failure cases.</h2>
+    <p class="sub">Restarts, replays, limits and disconnects are the normal path, not the exception.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Delayed jobs only</h3>
+        <p>Nothing polls a clock. Each email becomes a BullMQ delayed job with its UUID as the job id.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 4v5c0 5-3.4 8-8 9-4.6-1-8-4-8-9V7z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <h3>One atomic gate</h3>
+        <p>Per-sender hourly counter, optional global counter and minimum spacing enforced in a single Redis Lua call.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.7L4 16"/><path d="M4 20v-4h4"/></svg></div>
+        <h3>Restart-safe</h3>
+        <p>Startup recovery re-enqueues Postgres rows with no live job, so killing the API and worker mid-flight loses nothing.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+        <h3>Idempotent</h3>
+        <p>Replaying a request with the same <code>Idempotency-Key</code> returns the original campaign instead of duplicating it.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 17l5-5 4 4 6-7 3 3"/></svg></div>
+        <h3>Denied, not dropped</h3>
+        <p>Over-limit jobs call <code>moveToDelayed</code> and raise <code>DelayedError</code> — they wait for the next window.</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M3 12h18"/></svg></div>
+        <h3>Honest states</h3>
+        <p>Skeletons while loading, an empty state with a next action, and retryable error panels — never a blank screen.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="verification" class="wrap">
+    <div class="kicker">Verification</div>
+    <h2>Tested against the running stack.</h2>
+    <p class="sub">Real HTTP calls, real Ethereal delivery, real process kills — not mocked assertions.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Scenario</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Schedule an email → saved in PostgreSQL</td><td><span class="pill ok"><span class="d"></span>Pass</span></td></tr>
+          <tr><td>Future email → BullMQ delays it</td><td><span class="pill ok"><span class="d"></span>Pass · 2 s spacing</span></td></tr>
+          <tr><td>Restart API + worker → email still sends</td><td><span class="pill ok"><span class="d"></span>Pass · sent after both were killed</span></td></tr>
+          <tr><td>Email reaches scheduled time → worker sends</td><td><span class="pill ok"><span class="d"></span>Pass · preview URL returned</span></td></tr>
+          <tr><td>Multiple emails → concurrency works</td><td><span class="pill ok"><span class="d"></span>Pass</span></td></tr>
+          <tr><td>Send too quickly → minimum delay enforced</td><td><span class="pill ok"><span class="d"></span>Pass · 2 s floor</span></td></tr>
+          <tr><td>Reach hourly limit → excess jobs delayed</td><td><span class="pill ok"><span class="d"></span>Pass · delayed 10 → 13</span></td></tr>
+          <tr><td>Search scheduled / sent email</td><td><span class="pill ok"><span class="d"></span>Pass · Elasticsearch</span></td></tr>
+          <tr><td>Same request again → no duplicate</td><td><span class="pill ok"><span class="d"></span>Pass · idempotent replay</span></td></tr>
+          <tr><td>Disconnect Slack → no application crash</td><td><span class="pill ok"><span class="d"></span>Pass · 204, app healthy</span></td></tr>
+          <tr><td>Hourly limit hit → Slack alert</td><td><span class="pill block"><span class="d"></span>Needs Slack app credentials</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="stack" class="wrap">
+    <div class="kicker">Stack</div>
+    <h2>Small surface, sharp tools.</h2>
+    <div class="cards">
+      <div class="card"><h3>Frontend</h3><p>React 18, TypeScript, Tailwind, TanStack Query, React Router, Vite, dependency-free SVG charts.</p></div>
+      <div class="card"><h3>Backend</h3><p>Express, TypeScript, Prisma, Zod, JWT session cookie, Google OAuth, Vitest.</p></div>
+      <div class="card"><h3>Infrastructure</h3><p>PostgreSQL, Redis with AOF, BullMQ, Elasticsearch, Docker Compose.</p></div>
+      <div class="card"><h3>Delivery</h3><p>Ethereal SMTP with pooled transports, app-password auth, Slack webhooks.</p></div>
+    </div>
+    <div class="chips">
+      <span class="chip">React</span><span class="chip">TypeScript</span><span class="chip">Tailwind</span>
+      <span class="chip">Express</span><span class="chip">Prisma</span><span class="chip">PostgreSQL</span>
+      <span class="chip">Redis</span><span class="chip">BullMQ</span><span class="chip">Elasticsearch</span>
+      <span class="chip">Ethereal SMTP</span><span class="chip">Google OAuth</span><span class="chip">Slack</span>
+      <span class="chip">Docker</span>
+    </div>
+  </section>
 
   <footer>
-    Setup, API reference and architecture notes live in the repository README.
-    The live app runs through a temporary tunnel from the development machine; the recorded walkthrough above is the durable reference.
+    <div class="wrap foot-in">
+      <span>Setup, API reference and architecture notes live in the repository README. The live app runs through a temporary tunnel from the development machine; the recorded walkthrough above is the durable reference.</span>
+      <span class="foot-links">
+        <a href="https://github.com/diya003/email">Repository</a>
+        <a href="demo.webm">Video</a>
+        <a href="https://sacrifice-ethnic-admit-lynn.trycloudflare.com">Live app</a>
+      </span>
+    </div>
   </footer>
 </main>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }, { threshold: 0.12 });
+  document.querySelectorAll('section, .frame').forEach((el) => { el.classList.add('reveal'); io.observe(el); });
+</script>
 </body>
 </html>
